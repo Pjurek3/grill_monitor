@@ -64,12 +64,53 @@ def get_grill_temp():
     grill.value(1)
     return temp_pin.read()
 
-def temperature():
-    """measures the value of temp from our sensor"""
+def temperature(measurements=20):
+    """
+    captures temperature readings and reports out results
+    
+    parameters
+    -------
+    measurements: int
+        positive integer which controls how many measurements are made in 
+        reading.
+    
+    results
+    --------
+    
+    """
     # get food temp
     food_temps = []
     grill_temps = []
-    for i in range(20):
+    for i in range(measurements):
+        food_temps.append(get_food_temp())
+        # get grill temp
+    for i in range(measurements):
+        grill_temps.append(get_grill_temp())
+    
+    food_temp = sum(food_temps)/len(food_temps)
+    grill_temp = sum(grill_temps)/len(grill_temps)
+    # return results
+    body = "{food_temp: " + str(food_temp) + ", grill_temp: " + str(grill_temp) +  "}"
+    return response_template % body
+
+def temperature(measurements=20):
+    """
+    captures temperature readings and reports out results
+    
+    parameters
+    -------
+    measurements: int
+        positive integer which controls how many measurements are made in 
+        reading.
+    
+    results
+    --------
+    
+    """
+    # get food temp
+    food_temps = []
+    grill_temps = []
+    for i in range(measurements):
         food_temps.append(get_food_temp())
         # get grill temp
         grill_temps.append(get_grill_temp())
@@ -83,6 +124,7 @@ def temperature():
 
 handlers = {
     'temperature': temperature,
+    'temperature_v02': temperature_v02
 }
 
 def main():
@@ -95,6 +137,7 @@ def main():
     s.bind(addr)
     s.listen(5)
     print("Listening, connect your browser to http://<this_host>:8080")
+    print(addr)
 
     while True:
         sleep(1)
@@ -108,6 +151,7 @@ def main():
         try:
             path = req.decode().split("\r\n")[0].split(" ")[1]
             handler = handlers[path.strip('/').split('/')[0]]
+            print(handler)
             response = handler()
         except KeyError:
             response = response_404
