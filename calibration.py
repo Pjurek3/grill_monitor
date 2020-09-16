@@ -5,6 +5,19 @@ reference: https://www.newport.com/medias/sys_master/images/images/h67/hc1/87970
 import requests
 import datetime
 
+class Calibration:
+	"""
+	calibration mechanism for the node mcu
+	
+	parameters
+	-------
+	
+	results
+	--------
+	
+	"""
+	pass
+
 
 def c_from_f(f):
     celcius = ((f - 32) * 5/9)
