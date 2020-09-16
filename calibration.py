@@ -2,6 +2,10 @@
 
 reference: https://www.newport.com/medias/sys_master/images/images/h67/hc1/8797049487390/AN04-Thermistor-Calibration-and-Steinhart-Hart.pdf"""
 
+import requests
+import datetime
+
+
 def c_from_f(f):
     celcius = ((f - 32) * 5/9)
 	return celcius

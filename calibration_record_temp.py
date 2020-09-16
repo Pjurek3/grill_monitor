@@ -1,7 +1,6 @@
 import requests
 import datetime
 
-
 def record_temp(manual_temp: int):
 	"""records manual temp and recorded temp for calibration"""
 	 
