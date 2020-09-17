@@ -26,6 +26,8 @@ import ntptime, utime
 from machine import RTC, Pin
 from time import sleep
 
+__version__ = 'V0.1.0'
+
 rtc = RTC()
 food = Pin(5, Pin.OUT)
 grill = Pin(4, Pin.OUT)
@@ -121,10 +123,50 @@ def temperature(measurements=20):
     body = "{food_temp: " + str(food_temp) + ", grill_temp: " + str(grill_temp) +  "}"
     return response_template % body
 
+def configure(measurements=20):
+    """
+    captures results of readings and captures 
+    
+    parameters
+    -------
+    measurements: int
+        positive integer which controls how many measurements are made in 
+        reading.
+    
+    results
+    --------
+    
+    """
+    # get food temp
+    food_temps = []
+    grill_temps = []
+
+    # run set for food first and hold this.
+    grill.value(0)
+    food.value(1)
+    sleep(0.5)
+    for i in range(measurements):
+        # build list which we can take average of
+        food_temps.append(temp_pin.read())
+    
+    # run set for food first and hold this.
+    food.value(0)
+    grill.value(1)
+    sleep(0.5)
+    for i in range(measurements):
+        # build list which we can take average of
+        grill_temps.append(temp_pin.read())
+
+    
+    food_temp = sum(food_temps)/len(food_temps)
+    grill_temp = sum(grill_temps)/len(grill_temps)
+    # return results
+    body = "{food_temp: " + str(food_temp) + ", grill_temp: " + str(grill_temp) +  "}"
+    return response_template % body
 
 handlers = {
     'temperature': temperature,
-    'temperature_v02': temperature_v02
+    'configure': configure,
 }
 
 def main():
