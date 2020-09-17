@@ -25,6 +25,7 @@ import machine
 import ntptime, utime
 from machine import RTC, Pin
 from time import sleep
+import ujson as json
 
 __version__ = 'V0.1.0'
 
@@ -66,107 +67,75 @@ def get_grill_temp():
     grill.value(1)
     return temp_pin.read()
 
-def temperature(measurements=20):
+def v_2_f(v):
     """
-    captures temperature readings and reports out results
+    converts the voltage reading to fareingheit based off calibration of probe
     
     parameters
     -------
-    measurements: int
-        positive integer which controls how many measurements are made in 
-        reading.
+    v: numeric reading of the voltage read from the probe
     
     results
     --------
+    conversion to fareignheit based off calibration
+    
+    """
+    return 0.2552 * v + 68.905
+
+def get_temperature(measurements=20):
+    """
+    function to calculate the temperature and voltage reading
+    
+    parameters
+    -------
+    measurements: int representing the number of readings to smooth over
+    
+    results
+    --------
+    dict of temperatures and voltages read
     
     """
     # get food temp
-    food_temps = []
-    grill_temps = []
+    food_readings = []
+    grill_readings = []
+    time.sleep(0.25)
     for i in range(measurements):
-        food_temps.append(get_food_temp())
+        food_readings.append(get_food_temp())
         # get grill temp
-    for i in range(measurements):
-        grill_temps.append(get_grill_temp())
     
-    food_temp = sum(food_temps)/len(food_temps)
-    grill_temp = sum(grill_temps)/len(grill_temps)
-    # return results
-    body = "{food_temp: " + str(food_temp) + ", grill_temp: " + str(grill_temp) +  "}"
-    return response_template % body
+    time.sleep(0.25)
+    for i in range(measurements):
+        grill_readings.append(get_grill_temp())
+    
+    food_v = sum(food_readings)/len(food_readings)
+    grill_v = sum(grill_readings)/len(grill_readings)
+    food_t = v_2_f(food_v)
+    grill_t = v_2_f(grill_t)
+    return {'food_voltage': food_v,
+            'food_temperature': food_t, 
+            'grill_voltage': grill_v,
+            'grill_temperature': grill_t}
 
-def temperature(measurements=20):
+def temperature():
     """
-    captures temperature readings and reports out results
+    formats results and sends back as api request
     
     parameters
     -------
-    measurements: int
-        positive integer which controls how many measurements are made in 
-        reading.
-    
+
     results
     --------
+    http formatted string
     
     """
-    # get food temp
-    food_temps = []
-    grill_temps = []
-    for i in range(measurements):
-        food_temps.append(get_food_temp())
-        # get grill temp
-        grill_temps.append(get_grill_temp())
-    
-    food_temp = sum(food_temps)/len(food_temps)
-    grill_temp = sum(grill_temps)/len(grill_temps)
+
     # return results
-    body = "{food_temp: " + str(food_temp) + ", grill_temp: " + str(grill_temp) +  "}"
+    body = json.dumps(get_temperature(measurements=20))
     return response_template % body
 
-def configure(measurements=20):
-    """
-    captures results of readings and captures 
-    
-    parameters
-    -------
-    measurements: int
-        positive integer which controls how many measurements are made in 
-        reading.
-    
-    results
-    --------
-    
-    """
-    # get food temp
-    food_temps = []
-    grill_temps = []
-
-    # run set for food first and hold this.
-    grill.value(0)
-    food.value(1)
-    sleep(0.5)
-    for i in range(measurements):
-        # build list which we can take average of
-        food_temps.append(temp_pin.read())
-    
-    # run set for food first and hold this.
-    food.value(0)
-    grill.value(1)
-    sleep(0.5)
-    for i in range(measurements):
-        # build list which we can take average of
-        grill_temps.append(temp_pin.read())
-
-    
-    food_temp = sum(food_temps)/len(food_temps)
-    grill_temp = sum(grill_temps)/len(grill_temps)
-    # return results
-    body = "{food_temp: " + str(food_temp) + ", grill_temp: " + str(grill_temp) +  "}"
-    return response_template % body
 
 handlers = {
     'temperature': temperature,
-    'configure': configure,
 }
 
 def main():
@@ -193,6 +162,7 @@ def main():
         try:
             path = req.decode().split("\r\n")[0].split(" ")[1]
             handler = handlers[path.strip('/').split('/')[0]]
+            print(path.strip('/').split('/')[0])
             print(handler)
             response = handler()
         except KeyError:
