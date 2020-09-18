@@ -98,19 +98,25 @@ def get_temperature(measurements=20):
     # get food temp
     food_readings = []
     grill_readings = []
-    time.sleep(0.25)
+    sleep(0.25)
+    print('getting food reading')
     for i in range(measurements):
         food_readings.append(get_food_temp())
         # get grill temp
+    print(food_readings)
     
-    time.sleep(0.25)
+    sleep(0.25)
+    print('getting grill reading')
     for i in range(measurements):
         grill_readings.append(get_grill_temp())
+    print(grill_readings)
     
     food_v = sum(food_readings)/len(food_readings)
     grill_v = sum(grill_readings)/len(grill_readings)
+    print('converting to f')
     food_t = v_2_f(food_v)
-    grill_t = v_2_f(grill_t)
+    grill_t = v_2_f(grill_v)
+    print('step3')
     return {'food_voltage': food_v,
             'food_temperature': food_t, 
             'grill_voltage': grill_v,
@@ -130,12 +136,17 @@ def temperature():
     """
 
     # return results
-    body = json.dumps(get_temperature(measurements=20))
+    print('step1')
+    data = get_temperature()
+    print(data)
+    body = json.dumps(data)
+    print('step2')
     return response_template % body
 
 
 handlers = {
     'temperature': temperature,
+    '': temperature,
 }
 
 def main():
@@ -164,6 +175,7 @@ def main():
             handler = handlers[path.strip('/').split('/')[0]]
             print(path.strip('/').split('/')[0])
             print(handler)
+            print(handlers)
             response = handler()
         except KeyError:
             response = response_404
