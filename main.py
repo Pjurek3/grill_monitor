@@ -54,14 +54,14 @@ def time():
 
     return response_template % body
 
-def get_food_temp():
+def food_value():
     """returns foote temp"""
     grill.value(0)
     food.value(1)
     return temp_pin.read()
 
 
-def get_grill_temp():
+def grill_value():
     """returns grill temp"""
     food.value(0)
     grill.value(1)
@@ -101,16 +101,16 @@ def get_temperature(measurements=20):
     sleep(0.25)
     print('getting food reading')
     for i in range(measurements):
-        food_readings.append(get_food_temp())
+        food_readings.append(food_value())
         # get grill temp
     print(food_readings)
     
     sleep(0.25)
     print('getting grill reading')
     for i in range(measurements):
-        grill_readings.append(get_grill_temp())
+        grill_readings.append(grill_value())
     print(grill_readings)
-    
+
     food_v = sum(food_readings)/len(food_readings)
     grill_v = sum(grill_readings)/len(grill_readings)
     print('converting to f')
