@@ -1,6 +1,6 @@
 import network
 import machine
-from time import sleep, sleep_ms
+from utime import sleep, sleep_ms
 import ntptime, utime
 import urequests
 import secrets
@@ -9,7 +9,15 @@ import ujson
 __version__ = 'V0.2.0'
 
 # defines the interval between taking readings in seconds
-READINGS_INTERVAL_SECONDS = 300 # seconds
+READINGS_INTERVAL_SECONDS = 10 # seconds
+
+led = machine.Pin(2, machine.Pin.OUT)
+
+def blink():
+    """blinks led briefly"""
+    led.value(0)
+    sleep(1)
+    led.value(1)
 
 def send_data(reading):
     """sends the dict data to the adafruit IO
@@ -21,7 +29,7 @@ def send_data(reading):
     data_field = 1
     base_url = 'https://io.adafruit.com'
 
-    mapper = [('/api/v2/{}/feeds/food-temp', 'food_temp'),
+    mapper = [('/api/v2/{}/feeds/food-temp/data', 'food_temp'),
             ('/api/v2/{}/feeds/grill-temp/data', 'grill_temp'),]
     for item in mapper:
         url = base_url + item[URL].format(secrets.ADAFRUIT_IO_USERNAME)
@@ -29,12 +37,13 @@ def send_data(reading):
                 'Content-Type': 'application/json',
                 }
         data = {'value': reading[item[data_field]]}
-        urequests.post(url=url, headers=headers, data=ujson.dumps(data))
+        print(data)
+        response = urequests.post(url=url, headers=headers, data=ujson.dumps(data))
+        print(response.__dict__)
 
 rtc = machine.RTC()
 food = machine.Pin(5, machine.Pin.OUT)
 grill = machine.Pin(4, machine.Pin.OUT)
-led = machine.Pin(9, machine.Pin.OUT)
 switch_pin = machine.Pin(10, machine.Pin.IN)
 temp_pin = machine.ADC(0)
 print(temp_pin.read())
@@ -116,8 +125,16 @@ def get_temperature(measurements=20):
 def main():
 
     while True:
-        sleep(READINGS_INTERVAL_SECONDS)
-        readings = get_temperature()
+        blink()
+        print('getting readings')
+        readings = get_temperature(2)
+        blink()
+        print(readings)
+        print('sending data')
         send_data(readings)
+        blink()
+        print('going to sleep')
+        sleep(READINGS_INTERVAL_SECONDS)
 
+print('starting up')
 main()
