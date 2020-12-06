@@ -1,39 +1,41 @@
-"""this script runs the microcontroller as a web server.  This allows
-outside items to ping the server and get data"""
-
-try:
-    import usocket as socket
-except:
-    import socket
-
-response_404 = """HTTP/1.0 404 NOT FOUND
-
-<h1>404 Not Found</h1>
-"""
-
-response_500 = """HTTP/1.0 500 INTERNAL SERVER ERROR
-
-<h1>500 Internal Server Error</h1>
-"""
-
-response_template = """HTTP/1.0 200 OK
-
-%s
-"""
-
+import network
 import machine
+from time import sleep, sleep_ms
 import ntptime, utime
-from machine import RTC, Pin
-from time import sleep
-import ujson as json
+import urequests
+import secrets
+import ujson
 
-__version__ = 'V0.1.0'
+__version__ = 'V0.2.0'
 
-rtc = RTC()
-food = Pin(5, Pin.OUT)
-grill = Pin(4, Pin.OUT)
-led = Pin(9, Pin.OUT)
-switch_pin = Pin(10, Pin.IN)
+# defines the interval between taking readings in seconds
+READINGS_INTERVAL_SECONDS = 300 # seconds
+
+def send_data(reading):
+    """sends the dict data to the adafruit IO
+
+    assume reading is provided with dict with food_temp, grill_temp keys and 
+    integer readings as values"""
+    # post data
+    URL = 0
+    data_field = 1
+    base_url = 'https://io.adafruit.com'
+
+    mapper = [('/api/v2/{}/feeds/food-temp', 'food_temp'),
+            ('/api/v2/{}/feeds/grill-temp/data', 'grill_temp'),]
+    for item in mapper:
+        url = base_url + item[URL].format(secrets.ADAFRUIT_IO_USERNAME)
+        headers = {'x-aio-key': secrets.ADAFRUIT_IO_KEY,
+                'Content-Type': 'application/json',
+                }
+        data = {'value': reading[item[data_field]]}
+        urequests.post(url=url, headers=headers, data=ujson.dumps(data))
+
+rtc = machine.RTC()
+food = machine.Pin(5, machine.Pin.OUT)
+grill = machine.Pin(4, machine.Pin.OUT)
+led = machine.Pin(9, machine.Pin.OUT)
+switch_pin = machine.Pin(10, machine.Pin.IN)
 temp_pin = machine.ADC(0)
 print(temp_pin.read())
 
@@ -43,16 +45,6 @@ except:
     seconds = 0
 rtc.datetime(utime.localtime(seconds))
 
-def time():
-    body = """<html>
-<body>
-<h1>Time</h1>
-<p>%s</p>
-</body>
-</html>
-""" % str(rtc.datetime())
-
-    return response_template % body
 
 def food_value():
     """returns foote temp"""
@@ -98,17 +90,16 @@ def get_temperature(measurements=20):
     # get food temp
     food_readings = []
     grill_readings = []
-    sleep(0.25)
     print('getting food reading')
     for i in range(measurements):
         food_readings.append(food_value())
         # get grill temp
-    print(food_readings)
+        sleep_ms(100)
     
-    sleep(0.25)
     print('getting grill reading')
     for i in range(measurements):
         grill_readings.append(grill_value())
+        sleep_ms(100)
     print(grill_readings)
 
     food_v = sum(food_readings)/len(food_readings)
@@ -118,74 +109,15 @@ def get_temperature(measurements=20):
     grill_t = v_2_f(grill_v)
     print('step3')
     return {'food_voltage': food_v,
-            'food_temperature': food_t, 
+            'food_temp': food_t, 
             'grill_voltage': grill_v,
-            'grill_temperature': grill_t}
-
-def temperature():
-    """
-    formats results and sends back as api request
-    
-    parameters
-    -------
-
-    results
-    --------
-    http formatted string
-    
-    """
-
-    # return results
-    print('step1')
-    data = get_temperature()
-    print(data)
-    body = json.dumps(data)
-    print('step2')
-    return response_template % body
-
-
-handlers = {
-    'temperature': temperature,
-    '': temperature,
-}
+            'grill_temp': grill_t}
 
 def main():
-    s = socket.socket()
-    ai = socket.getaddrinfo("0.0.0.0", 8080)
-    addr = ai[0][-1]
-
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    s.bind(addr)
-    s.listen(5)
-    print("Listening, connect your browser to http://<this_host>:8080")
-    print(addr)
 
     while True:
-        sleep(1)
-        res = s.accept()
-        client_s = res[0]
-        client_addr = res[1]
-        req = client_s.recv(4096)
-        print("Request:")
-        print(req)
-
-        try:
-            path = req.decode().split("\r\n")[0].split(" ")[1]
-            handler = handlers[path.strip('/').split('/')[0]]
-            print(path.strip('/').split('/')[0])
-            print(handler)
-            print(handlers)
-            response = handler()
-        except KeyError:
-            response = response_404
-        except Exception as e:
-            response = response_500
-            print(str(e))
-
-        client_s.send(b"\r\n".join([line.encode() for line in response.split("\n")]))
-
-        client_s.close()
-        print()
+        sleep(READINGS_INTERVAL_SECONDS)
+        readings = get_temperature()
+        send_data(readings)
 
 main()
