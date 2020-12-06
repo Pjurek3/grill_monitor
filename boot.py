@@ -11,13 +11,6 @@ print('configuring')
 
 sta_if = network.WLAN(network.STA_IF); sta_if.active(True)
 
-try:
-    with open("passwords.txt") as f:
-        connections = f.readlines()
-except OSError:
-    print("No passwords.txt file!")
-    connections = []
-
 
 for connection in connections:
     station, password = connection

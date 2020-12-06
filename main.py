@@ -9,9 +9,19 @@ import ujson
 __version__ = 'V0.2.0'
 
 # defines the interval between taking readings in seconds
-READINGS_INTERVAL_SECONDS = 10 # seconds
+READINGS_INTERVAL_SECONDS = 60 # seconds
 
 led = machine.Pin(2, machine.Pin.OUT)
+
+def deep_sleep(msecs):
+  #configure RTC.ALARM0 to be able to wake the device
+  rtc = machine.RTC()
+  rtc.irq(trigger=rtc.ALARM0, wake=machine.DEEPSLEEP)
+  # set RTC.ALARM0 to fire after Xmilliseconds, waking the device
+  rtc.alarm(rtc.ALARM0, msecs)
+  #put the device to sleep
+  machine.deepsleep()
+
 
 def blink():
     """blinks led briefly"""
@@ -124,17 +134,18 @@ def get_temperature(measurements=20):
 
 def main():
 
-    while True:
-        blink()
-        print('getting readings')
-        readings = get_temperature(2)
-        blink()
-        print(readings)
-        print('sending data')
-        send_data(readings)
-        blink()
-        print('going to sleep')
-        sleep(READINGS_INTERVAL_SECONDS)
+    blink()
+    print('getting readings')
+    readings = get_temperature(2)
+    blink()
+    print(readings)
+    print('sending data')
+    send_data(readings)
+    blink()
+    print('going to sleep for ', READINGS_INTERVAL_SECONDS, ' seconds')
+    sleep(READINGS_INTERVAL_SECONDS)
+
 
 print('starting up')
 main()
+deep_sleep(READINGS_INTERVAL_SECONDS * 1000)
